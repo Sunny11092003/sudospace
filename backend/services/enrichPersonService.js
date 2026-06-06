@@ -3,12 +3,21 @@ import axios from "axios";
 const ENRICH_URL =
   "https://api.prospeo.io/enrich-person";
 
+const sleep = (ms) =>
+  new Promise((resolve) =>
+    setTimeout(resolve, ms)
+  );
+
 export async function enrichContacts(
   contacts
 ) {
   const enriched = [];
 
-  for (const contact of contacts) {
+  // Free plan protection
+  const limitedContacts =
+    contacts.slice(0, 5);
+
+  for (const contact of limitedContacts) {
     try {
       const personId =
         contact.person?.person_id;
@@ -47,12 +56,47 @@ export async function enrichContacts(
           person?.email?.status ||
           null
       });
+
+      console.log(
+        `Enriched: ${person?.email?.email || "No Email"}`
+      );
+
+      // Prospeo limit: 1 request/sec
+      await sleep(1500);
+
     } catch (error) {
+      const status =
+        error.response?.status;
+
+      const data =
+        error.response?.data;
+
       console.error(
         "Enrich Error:",
-        error.response?.data ||
-          error.message
+        {
+          status,
+          data
+        }
       );
+
+      // Rate limit hit
+      if (status === 429) {
+        console.error(
+          "Prospeo enrich rate limit reached."
+        );
+        break;
+      }
+
+      // No verified email
+      if (
+        data?.error_code ===
+        "NO_MATCH"
+      ) {
+        await sleep(1500);
+        continue;
+      }
+
+      await sleep(1500);
     }
   }
 
