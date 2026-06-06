@@ -8,6 +8,12 @@ export async function sendEmail({
   firstName,
   companyName
 }) {
+  if (!email) {
+    throw new Error(
+      "Recipient email is required"
+    );
+  }
+
   try {
     const response =
       await axios.post(
@@ -19,26 +25,27 @@ export async function sendEmail({
             email:
               process.env.SENDER_EMAIL
           },
+
           to: [
             {
               email
             }
           ],
-          subject:
-            `Quick idea for ${companyName}`,
+
+          subject: `Quick idea for ${companyName}`,
+
           htmlContent: `
-            <p>Hi ${firstName},</p>
+            <p>Hi ${firstName || "there"},</p>
 
             <p>
-              I noticed ${companyName}
-              and thought there may be
-              an opportunity to improve
-              outbound prospecting.
+              I came across <strong>${companyName}</strong>
+              and thought there might be an opportunity
+              to improve outbound prospecting and lead generation.
             </p>
 
             <p>
-              Would you be open to a
-              short conversation?
+              Would you be open to a short conversation
+              sometime this week?
             </p>
 
             <p>
@@ -49,8 +56,7 @@ export async function sendEmail({
         },
         {
           headers: {
-            accept:
-              "application/json",
+            accept: "application/json",
             "content-type":
               "application/json",
             "api-key":
@@ -59,14 +65,22 @@ export async function sendEmail({
         }
       );
 
+    console.log(
+      `Email sent to ${email}`
+    );
+
     return response.data;
+
   } catch (error) {
     console.error(
       "Brevo Error:",
       error.response?.data ||
-        error.message
+      error.message
     );
 
-    throw error;
+    throw new Error(
+      error.response?.data?.message ||
+      "Failed to send email"
+    );
   }
 }

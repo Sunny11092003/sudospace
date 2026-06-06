@@ -39,6 +39,48 @@ try {
 
 };
 
+const sendEmails = async () => {
+  try {
+
+    const contactsToSend =
+      result.contacts.filter(
+        (contact) =>
+          contact.email
+      );
+
+    if (
+      contactsToSend.length === 0
+    ) {
+      alert(
+        "No valid emails found."
+      );
+      return;
+    }
+
+    const res =
+      await axios.post(
+        "https://sudospace-blue.vercel.app/api/send-emails",
+        {
+          contacts:
+            contactsToSend
+        }
+      );
+
+    alert(
+      `${res.data.sent} emails sent successfully`
+    );
+
+  } catch (error) {
+    console.error(error);
+
+    alert(
+      error.response?.data
+        ?.message ||
+      "Failed to send emails"
+    );
+  }
+};
+
 return ( 
 <div className="app"> <div className="hero"> <h1>Subspace Lead Generator</h1>
 
@@ -263,9 +305,12 @@ return (
       </div>
 
       <div className="footer-actions">
-        <button className="send-btn">
-          📧 Send Emails
-        </button>
+<button
+  className="send-btn"
+  onClick={sendEmails}
+>
+  Send Emails
+</button>
       </div>
     </>
   )}
