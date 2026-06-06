@@ -38,20 +38,38 @@ export async function findContacts(companies) {
       );
 
     } catch (error) {
+      const status =
+        error.response?.status;
 
-      if (
-        error.response?.status === 429
-      ) {
-        throw new Error(
-          "Prospeo daily quota exceeded"
-        );
-      }
+      const data =
+        error.response?.data;
 
       console.error(
-        "Prospeo Error:",
-        error.response?.data ||
-        error.message
+        `Prospeo Error for ${domain}:`,
+        {
+          status,
+          data
+        }
       );
+
+      // No contacts found for this company
+      if (
+        data?.error_code ===
+        "NO_RESULTS"
+      ) {
+        continue;
+      }
+
+      // Daily quota / rate limit exceeded
+      if (status === 429) {
+        console.error(
+          "Prospeo quota exceeded. Returning collected contacts."
+        );
+        break;
+      }
+
+      // Continue with next company on other errors
+      continue;
     }
   }
 

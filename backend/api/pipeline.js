@@ -47,25 +47,30 @@ export default async function handler(req, res) {
     // Step 1: Find similar companies
     const companies = await findSimilarCompanies(domain);
 
-    console.log(`Companies Found: ${companies.length}`);
+    console.log(
+      `Companies Found: ${companies.length}`
+    );
 
     // Step 2: Find contacts
-    let contacts = [];
+    const contacts =
+      await findContacts(companies);
 
-    try {
-      contacts = await findContacts(companies);
-    } catch (error) {
-      console.error("Prospeo Error:", error);
+    console.log(
+      `Contacts Found: ${contacts.length}`
+    );
 
-      return res.status(429).json({
-        success: false,
+    // If no contacts found, return success with empty results
+    if (!contacts.length) {
+      return res.status(200).json({
+        success: true,
+        totalCompanies: companies.length,
+        totalContacts: 0,
+        verifiedEmails: 0,
+        contacts: [],
         message:
-          error.message ||
-          "Prospeo API quota exceeded"
+          "No contacts found or Prospeo quota reached"
       });
     }
-
-    console.log(`Contacts Found: ${contacts.length}`);
 
     // Step 3: Enrich contacts
     const enrichedContacts =
@@ -87,11 +92,15 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       success: true,
-      totalCompanies: companies.length,
-      totalContacts: contacts.length,
-      verifiedEmails: validEmails.length,
+      totalCompanies:
+        companies.length,
+      totalContacts:
+        contacts.length,
+      verifiedEmails:
+        validEmails.length,
       contacts: validEmails
     });
+
   } catch (error) {
     console.error(
       "Pipeline Error:",
