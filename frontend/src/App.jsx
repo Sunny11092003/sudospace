@@ -20,7 +20,7 @@ function App() {
       setResult(null);
 
       const res = await axios.post(
-        "https://sudospace-blue.vercel.app//api/pipeline",
+        "https://sudospace-blue.vercel.app/api/pipeline",
         {
           domain,
         }
