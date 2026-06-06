@@ -1,19 +1,30 @@
-import { findSimilarCompanies }
-from "../services/oceanService.js";
+import { findSimilarCompanies } from "../services/oceanService.js";
+import { findContacts } from "../services/prospeoService.js";
+import { enrichContacts } from "../services/enrichPersonService.js";
+import { sendEmail } from "../services/brevoService.js";
 
-import { findContacts }
-from "../services/prospeoService.js";
+export default async function handler(req, res) {
+  // CORS Headers
+  res.setHeader(
+    "Access-Control-Allow-Origin",
+    "https://sudospace-i5rf.vercel.app"
+  );
 
-import { enrichContacts }
-from "../services/enrichPersonService.js";
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, OPTIONS"
+  );
 
-import { sendEmail }
-from "../services/brevoService.js";
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization"
+  );
 
-export default async function handler(
-  req,
-  res
-) {
+  // Handle preflight requests
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
   try {
     if (req.method !== "POST") {
       return res.status(405).json({
@@ -31,29 +42,21 @@ export default async function handler(
       });
     }
 
-    console.log(
-      `Starting pipeline for: ${domain}`
-    );
+    console.log(`Starting pipeline for: ${domain}`);
 
     // Step 1: Find similar companies
-    const companies =
-      await findSimilarCompanies(
-        domain
-      );
+    const companies = await findSimilarCompanies(domain);
 
-    console.log(
-      `Companies Found: ${companies.length}`
-    );
+    console.log(`Companies Found: ${companies.length}`);
 
     // Step 2: Find contacts
     let contacts = [];
 
     try {
-      contacts =
-        await findContacts(
-          companies
-        );
+      contacts = await findContacts(companies);
     } catch (error) {
+      console.error("Prospeo Error:", error);
+
       return res.status(429).json({
         success: false,
         message:
@@ -62,15 +65,11 @@ export default async function handler(
       });
     }
 
-    console.log(
-      `Contacts Found: ${contacts.length}`
-    );
+    console.log(`Contacts Found: ${contacts.length}`);
 
     // Step 3: Enrich contacts
     const enrichedContacts =
-      await enrichContacts(
-        contacts
-      );
+      await enrichContacts(contacts);
 
     console.log(
       `Enriched Contacts: ${enrichedContacts.length}`
@@ -79,8 +78,7 @@ export default async function handler(
     // Step 4: Filter valid emails
     const validEmails =
       enrichedContacts.filter(
-        (contact) =>
-          contact.email
+        (contact) => contact.email
       );
 
     console.log(
@@ -89,20 +87,15 @@ export default async function handler(
 
     return res.status(200).json({
       success: true,
-      totalCompanies:
-        companies.length,
-      totalContacts:
-        contacts.length,
-      verifiedEmails:
-        validEmails.length,
-      contacts:
-        validEmails
+      totalCompanies: companies.length,
+      totalContacts: contacts.length,
+      verifiedEmails: validEmails.length,
+      contacts: validEmails
     });
-
   } catch (error) {
     console.error(
       "Pipeline Error:",
-      error
+      error.stack || error
     );
 
     return res.status(500).json({
