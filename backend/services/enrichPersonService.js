@@ -28,7 +28,7 @@ export async function enrichContacts(
         await axios.post(
           ENRICH_URL,
           {
-            only_verified_email: true,
+            only_verified_email: false,
             data: {
               person_id: personId
             }
@@ -45,6 +45,10 @@ export async function enrichContacts(
 
       const person =
         response.data.person;
+
+        console.log(
+  JSON.stringify(response.data, null, 2)
+);
 
       enriched.push({
         ...contact,
