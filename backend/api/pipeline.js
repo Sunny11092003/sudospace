@@ -19,7 +19,6 @@ export default async function handler(req, res) {
     "Content-Type, Authorization"
   );
 
-  // Handle preflight requests
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
@@ -41,13 +40,14 @@ export default async function handler(req, res) {
       });
     }
 
-    console.log(`Starting pipeline for: ${domain}`);
+    console.log(
+      `Starting pipeline for: ${domain}`
+    );
 
-    // Step 1: Find similar companies
+    // Step 1: Find Similar Companies
     const allCompanies =
       await findSimilarCompanies(domain);
 
-    // Limit to 5 companies to avoid Prospeo rate limits
     const companies =
       allCompanies.slice(0, 5);
 
@@ -59,27 +59,35 @@ export default async function handler(req, res) {
       `Companies Processed: ${companies.length}`
     );
 
-    // Step 2: Find contacts
-    const contacts =
+    // Step 2: Find Contacts
+    const allContacts =
       await findContacts(companies);
 
     console.log(
-      `Contacts Found: ${contacts.length}`
+      `Contacts Found: ${allContacts.length}`
     );
 
-    if (!contacts.length) {
+    if (!allContacts.length) {
       return res.status(200).json({
         success: true,
         totalCompanies: companies.length,
         totalContacts: 0,
+        processedContacts: 0,
         verifiedEmails: 0,
         contacts: [],
-        message:
-          "No contacts found or Prospeo rate limit reached"
+        message: "No contacts found"
       });
     }
 
-    // Step 3: Enrich contacts
+    // Limit contacts for enrichment
+    const contacts =
+      allContacts.slice(0, 5);
+
+    console.log(
+      `Contacts Processed For Enrichment: ${contacts.length}`
+    );
+
+    // Step 3: Enrich Contacts
     const enrichedContacts =
       await enrichContacts(contacts);
 
@@ -87,14 +95,14 @@ export default async function handler(req, res) {
       `Enriched Contacts: ${enrichedContacts.length}`
     );
 
-    // Step 4: Filter valid emails
-    const validEmails =
+    // Count verified emails
+    const verifiedEmails =
       enrichedContacts.filter(
         (contact) => contact.email
-      );
+      ).length;
 
     console.log(
-      `Verified Emails: ${validEmails.length}`
+      `Verified Emails: ${verifiedEmails}`
     );
 
     return res.status(200).json({
@@ -102,10 +110,14 @@ export default async function handler(req, res) {
       totalCompanies:
         companies.length,
       totalContacts:
+        allContacts.length,
+      processedContacts:
         contacts.length,
-      verifiedEmails:
-        validEmails.length,
-      contacts: validEmails
+      verifiedEmails,
+
+      // IMPORTANT:
+      // Return ALL enriched contacts
+      contacts: enrichedContacts
     });
 
   } catch (error) {
