@@ -1,5 +1,10 @@
 import axios from "axios";
 
+const sleep = (ms) =>
+  new Promise((resolve) =>
+    setTimeout(resolve, ms)
+  );
+
 export async function findContacts(companies) {
   const contacts = [];
 
@@ -37,6 +42,15 @@ export async function findContacts(companies) {
         ...(response.data.results || [])
       );
 
+      console.log(
+        `Found ${
+          response.data.results?.length || 0
+        } contacts for ${domain}`
+      );
+
+      // Prospeo free plan: 1 request per second
+      await sleep(1500);
+
     } catch (error) {
       const status =
         error.response?.status;
@@ -52,23 +66,25 @@ export async function findContacts(companies) {
         }
       );
 
-      // No contacts found for this company
+      // No contacts found
       if (
         data?.error_code ===
         "NO_RESULTS"
       ) {
+        await sleep(1500);
         continue;
       }
 
-      // Daily quota / rate limit exceeded
+      // Rate limit exceeded
       if (status === 429) {
         console.error(
-          "Prospeo quota exceeded. Returning collected contacts."
+          "Prospeo rate limit reached. Returning collected contacts."
         );
         break;
       }
 
-      // Continue with next company on other errors
+      // Other errors
+      await sleep(1500);
       continue;
     }
   }

@@ -1,7 +1,6 @@
 import { findSimilarCompanies } from "../services/oceanService.js";
 import { findContacts } from "../services/prospeoService.js";
 import { enrichContacts } from "../services/enrichPersonService.js";
-import { sendEmail } from "../services/brevoService.js";
 
 export default async function handler(req, res) {
   // CORS Headers
@@ -45,10 +44,19 @@ export default async function handler(req, res) {
     console.log(`Starting pipeline for: ${domain}`);
 
     // Step 1: Find similar companies
-    const companies = await findSimilarCompanies(domain);
+    const allCompanies =
+      await findSimilarCompanies(domain);
+
+    // Limit to 5 companies to avoid Prospeo rate limits
+    const companies =
+      allCompanies.slice(0, 5);
 
     console.log(
-      `Companies Found: ${companies.length}`
+      `Companies Found: ${allCompanies.length}`
+    );
+
+    console.log(
+      `Companies Processed: ${companies.length}`
     );
 
     // Step 2: Find contacts
@@ -59,7 +67,6 @@ export default async function handler(req, res) {
       `Contacts Found: ${contacts.length}`
     );
 
-    // If no contacts found, return success with empty results
     if (!contacts.length) {
       return res.status(200).json({
         success: true,
@@ -68,7 +75,7 @@ export default async function handler(req, res) {
         verifiedEmails: 0,
         contacts: [],
         message:
-          "No contacts found or Prospeo quota reached"
+          "No contacts found or Prospeo rate limit reached"
       });
     }
 
