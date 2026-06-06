@@ -3,206 +3,228 @@ import axios from "axios";
 import "./App.css";
 
 function App() {
-  const [domain, setDomain] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
-  const [error, setError] = useState("");
+const [domain, setDomain] = useState("");
+const [loading, setLoading] = useState(false);
+const [result, setResult] = useState(null);
+const [error, setError] = useState("");
 
-  const runPipeline = async () => {
-    if (!domain.trim()) {
-      alert("Please enter a domain");
-      return;
+const runPipeline = async () => {
+if (!domain.trim()) {
+alert("Please enter a domain");
+return;
+}
+
+try {
+  setLoading(true);
+  setError("");
+  setResult(null);
+
+  const res = await axios.post(
+    "https://sudospace-blue.vercel.app/api/pipeline",
+    {
+      domain,
     }
+  );
 
-    try {
-      setLoading(true);
-      setError("");
-      setResult(null);
+  setResult(res.data);
+} catch (err) {
+  console.error(err);
+  setError(
+    err.response?.data?.message ||
+      "Failed to run pipeline."
+  );
+} finally {
+  setLoading(false);
+}
 
-      const res = await axios.post(
-        "https://sudospace-blue.vercel.app/api/pipeline",
-        {
-          domain,
+};
+
+return ( 
+<div className="app"> <div className="hero"> <h1>Subspace Lead Generator</h1>
+
+    <div className="search-box">
+      <input
+        type="text"
+        placeholder="Enter company domain (e.g. openai.com)"
+        value={domain}
+        onChange={(e) =>
+          setDomain(e.target.value)
         }
-      );
+      />
 
-      setResult(res.data);
-    } catch (err) {
-      console.error(err);
-      setError(
-        "Failed to run pipeline. Please try again."
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+      <button
+        onClick={runPipeline}
+        disabled={loading}
+      >
+        {loading ? (
+          <>
+            <span className="loader"></span>
+            Processing...
+          </>
+        ) : (
+          "Run Pipeline"
+        )}
+      </button>
+    </div>
 
-  return (
-    <div className="app">
-      <div className="hero">
-        <h1>
-          🚀 Subspace Lead Generator
-        </h1>
+    {error && (
+      <div className="error">
+        {error}
+      </div>
+    )}
+  </div>
 
-        <div className="search-box">
-          <input
-            type="text"
-            placeholder="Enter company domain (e.g. openai.com)"
-            value={domain}
-            onChange={(e) =>
-              setDomain(e.target.value)
-            }
-          />
-
-          <button
-            onClick={runPipeline}
-            disabled={loading}
-          >
-            {loading ? (
-              <>
-                <span className="loader"></span>
-                Processing...
-              </>
-            ) : (
-              "Run Pipeline"
-            )}
-          </button>
+  {result && (
+    <>
+      <div className="summary">
+        <div className="card">
+          <h2>
+            {result.totalCompanies ||
+              0}
+          </h2>
+          <p>Companies Found</p>
         </div>
 
-        {error && (
-          <div className="error">
-            {error}
-          </div>
-        )}
+        <div className="card">
+          <h2>
+            {result.totalContacts ||
+              0}
+          </h2>
+          <p>Contacts Found</p>
+        </div>
+
+        <div className="card">
+          <h2>
+            {result.verifiedEmails ||
+              0}
+          </h2>
+          <p>Verified Emails</p>
+        </div>
+
+        <div className="card">
+          <h2>
+            {result.contacts
+              ?.length || 0}
+          </h2>
+          <p>Displayed Results</p>
+        </div>
       </div>
 
-      {result && (
-        <>
-          <div className="summary">
-            <div className="card">
-              <h2>
-                {
-                  result.totalCompanies
-                }
-              </h2>
-              <p>Companies Found</p>
-            </div>
+      <div className="results-header">
+        <h2>
+          🎯 Decision Makers
+        </h2>
 
-            <div className="card">
-              <h2>
-                {
-                  result.totalContacts
-                }
-              </h2>
-              <p>Contacts Found</p>
-            </div>
+        <p>
+          People discovered from
+          similar companies
+        </p>
+      </div>
 
-            <div className="card">
-              <h2>
-                {
-                  result.verifiedEmails
-                }
-              </h2>
-              <p>Verified Emails</p>
-            </div>
-          </div>
+      <div className="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Profile</th>
+              <th>Name</th>
+              <th>Title</th>
+              <th>Company</th>
+              <th>Email</th>
+              <th>Status</th>
+              <th>LinkedIn</th>
+            </tr>
+          </thead>
 
-          <div className="results-header">
-            <h2>
-              🎯 Decision Makers
-            </h2>
-          </div>
+          <tbody>
+            {result.contacts &&
+            result.contacts.length >
+              0 ? (
+              result.contacts.map(
+                (
+                  contact,
+                  index
+                ) => {
+                  const person =
+                    contact.person ||
+                    {};
 
-          <div className="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Profile</th>
-                  <th>Name</th>
-                  <th>Title</th>
-                  <th>Company</th>
-                  <th>Email</th>
-                  <th>Status</th>
-                  <th>LinkedIn</th>
-                </tr>
-              </thead>
+                  const company =
+                    contact.company ||
+                    {};
 
-              <tbody>
-                {result.contacts?.map(
-                  (
-                    contact,
-                    index
-                  ) => (
-                    <tr key={index}>
+                  return (
+                    <tr
+                      key={index}
+                    >
                       <td>
                         <div className="avatar">
-                          {contact.person?.full_name?.charAt(
-                            0
-                          ) || "?"}
+                          {(
+                            person.full_name ||
+                            "?"
+                          )
+                            .charAt(
+                              0
+                            )
+                            .toUpperCase()}
                         </div>
                       </td>
 
                       <td>
-                        {
-                          contact.person
-                            ?.full_name
-                        }
+                        {person.full_name ||
+                          "Not Found"}
                       </td>
 
                       <td>
-                        {
-                          contact.person
-                            ?.current_job_title
-                        }
+                        {person.current_job_title ||
+                          "Not Found"}
                       </td>
 
                       <td>
                         <div className="company-cell">
-                          {contact
-                            .company
-                            ?.logo_url && (
+                          {company.logo_url ? (
                             <img
                               src={
-                                contact
-                                  .company
-                                  .logo_url
+                                company.logo_url
                               }
                               alt=""
                               className="company-logo"
                             />
+                          ) : (
+                            <div className="company-placeholder">
+                              🏢
+                            </div>
                           )}
 
                           <span>
-                            {
-                              contact
-                                .company
-                                ?.name
-                            }
+                            {company.name ||
+                              "Not Found"}
                           </span>
                         </div>
                       </td>
 
                       <td>
-                        {contact.email}
+                        {contact.email ||
+                          "Not Found"}
                       </td>
 
                       <td>
-                        <span className="verified">
-                          {
-                            contact.emailStatus
+                        <span
+                          className={
+                            contact.email
+                              ? "verified"
+                              : "not-found"
                           }
+                        >
+                          {contact.emailStatus ||
+                            "Not Found"}
                         </span>
                       </td>
 
                       <td>
-                        {contact
-                          .person
-                          ?.linkedin_url ? (
+                        {person.linkedin_url ? (
                           <a
                             href={
-                              contact
-                                .person
-                                .linkedin_url
+                              person.linkedin_url
                             }
                             target="_blank"
                             rel="noreferrer"
@@ -211,25 +233,45 @@ function App() {
                             View
                           </a>
                         ) : (
-                          "-"
+                          <span className="not-found">
+                            Not Found
+                          </span>
                         )}
                       </td>
                     </tr>
-                  )
-                )}
-              </tbody>
-            </table>
-          </div>
+                  );
+                }
+              )
+            ) : (
+              <tr>
+                <td
+                  colSpan="7"
+                  style={{
+                    textAlign:
+                      "center",
+                    padding:
+                      "40px",
+                  }}
+                >
+                  No contacts
+                  found
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
 
-          <div className="footer-actions">
-            <button className="send-btn">
-              📧 Send Emails
-            </button>
-          </div>
-        </>
-      )}
-    </div>
-  );
+      <div className="footer-actions">
+        <button className="send-btn">
+          📧 Send Emails
+        </button>
+      </div>
+    </>
+  )}
+</div>
+
+);
 }
 
 export default App;
