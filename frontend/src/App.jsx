@@ -43,7 +43,13 @@ function App() {
         <h1>
           🚀 Subspace Lead Generator
         </h1>
-        
+
+        <p>
+          Find similar companies,
+          decision makers and verified
+          email addresses instantly.
+        </p>
+
         <div className="search-box">
           <input
             type="text"
