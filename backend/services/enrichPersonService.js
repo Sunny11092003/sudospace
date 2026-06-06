@@ -13,16 +13,19 @@ export async function enrichContacts(
 ) {
   const enriched = [];
 
-  // Free plan protection
-  const limitedContacts =
-    contacts.slice(0, 5);
-
-  for (const contact of limitedContacts) {
+  for (const contact of contacts) {
     try {
       const personId =
         contact.person?.person_id;
 
-      if (!personId) continue;
+      if (!personId) {
+        enriched.push({
+          ...contact,
+          email: null,
+          emailStatus: "NOT_FOUND"
+        });
+        continue;
+      }
 
       const response =
         await axios.post(
@@ -46,10 +49,6 @@ export async function enrichContacts(
       const person =
         response.data.person;
 
-        console.log(
-  JSON.stringify(response.data, null, 2)
-);
-
       enriched.push({
         ...contact,
         personId,
@@ -58,14 +57,17 @@ export async function enrichContacts(
           null,
         emailStatus:
           person?.email?.status ||
-          null
+          "NOT_FOUND"
       });
 
       console.log(
-        `Enriched: ${person?.email?.email || "No Email"}`
+        `Enriched ${
+          person?.full_name ||
+          personId
+        }`
       );
 
-      // Prospeo limit: 1 request/sec
+      // Prospeo Free Plan
       await sleep(1500);
 
     } catch (error) {
@@ -83,21 +85,20 @@ export async function enrichContacts(
         }
       );
 
-      // Rate limit hit
+      // Keep contact even if enrichment fails
+      enriched.push({
+        ...contact,
+        email: null,
+        emailStatus:
+          data?.error_code ||
+          "NOT_FOUND"
+      });
+
+      // Rate limit reached
       if (status === 429) {
         console.error(
-          "Prospeo enrich rate limit reached."
+          "Prospeo rate limit reached"
         );
-        break;
-      }
-
-      // No verified email
-      if (
-        data?.error_code ===
-        "NO_MATCH"
-      ) {
-        await sleep(1500);
-        continue;
       }
 
       await sleep(1500);

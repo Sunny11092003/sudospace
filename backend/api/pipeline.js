@@ -80,8 +80,7 @@ export default async function handler(req, res) {
     }
 
     // Limit contacts for enrichment
-    const contacts =
-      allContacts.slice(0, 5);
+    const contacts = allContacts;
 
     console.log(
       `Contacts Processed For Enrichment: ${contacts.length}`
